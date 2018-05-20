@@ -57,7 +57,7 @@ class hoax_image_search(api_model):
         print("loading model")
         self.model = self.init_model()
         csv_filename = 'index_subimage.csv'
-        self.df, self.feature_vectors = load_feature_vectors(csv_filename)
+        self.df, self.feature_vectors = self.load_feature_vectors(csv_filename)
  
     def init_model(self):
         ''' 
