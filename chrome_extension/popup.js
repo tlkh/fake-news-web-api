@@ -21,6 +21,7 @@ function check_title(title) {
 
 function check_img(image_list) {
     image_list = image_list[0].toString();
+    image_list = image_list.substring(1);
     
     var xhr = new XMLHttpRequest();
     xhr.open('POST', 'http://35.185.181.66:5000/predict?image_list=' + image_list, true);
