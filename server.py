@@ -26,28 +26,35 @@ def predict():
     # get the respective args from the post request
     if flask.request.method == "POST":
         try:
-            # arg: article_title (for clickbait detection)
-            
-            article_title = flask.request.args.get("article_title")
-            article_title = article_title.replace("%20", " ")
 
-            print(" * [i] Clickbait functionality")
-            print(" * [i] Incoming article title:", article_title)
+            try: # arg: article_title (for clickbait detection)
+                article_title = flask.request.args.get("article_title")
+                article_title = article_title.replace("%20", " ")
 
-            pred_clickbait = model_clickbait.predict(article_title)
-            data["clickbait"] = pred_clickbait
+                print(" * [i] Clickbait functionality")
+                print(" * [i] Incoming article title:", article_title)
 
-            # arg: image array
-            images_list = flask.request.args.get("images_list")
+                pred_clickbait = model_clickbait.predict(article_title)
+                data["clickbait"] = pred_clickbait
 
-            print(" * [i] Hoax image search functionality")
-            print(images_list)
-            print(" * [!] Not implemented yet")
+            except:
+                print(" * [i] No article title sent")
 
-            #for image in images_list:
-                #model_hoaximage.analyse_image(image)
+            try: # arg: image array
+                images_list = flask.request.args.get("images_list")
 
-            # indicate that the request was a success
+                print(" * [i] Hoax image search functionality")
+                print(images_list)
+                print(" * [!] Not implemented yet")
+
+                #for image in images_list:
+                    #model_hoaximage.analyse_image(image)
+
+                # indicate that the request was a success
+
+            except:
+                print(" * [i] No image list sent")
+
             data["success"] = True
 
         except Exception as e:
