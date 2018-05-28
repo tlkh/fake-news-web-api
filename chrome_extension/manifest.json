@@ -1,0 +1,14 @@
+{
+  "name" : "Clickbait Detector",
+  "version" : "0.1",
+  "description" : "A test",
+  "permissions": [
+    "tabs",
+    "<all_urls>"
+  ],
+  "browser_action": {
+     "default_icon": "icon.png",
+     "default_popup": "popup.html"
+  },
+  "manifest_version": 2
+}
