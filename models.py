@@ -123,7 +123,7 @@ class hoax_image_search(api_model):
             output_boxes.append([0, 0, cp_breath, cp_height])
         return output_boxes
 
-    def predict(self, path_image_to_analyse, plotting=False):
+    def predict(self, img, plotting=False):
         '''
         When the web server catches the URL, it downloads it and saves it.
         The image is saved in path_image_to_analyse
@@ -132,7 +132,6 @@ class hoax_image_search(api_model):
         For each "subimage" then the feature vector is calculated and compared with the database.
         It returns some results, such as the degree of match, and the source of the original photo (to be added)
         '''
-        img = cv2.imread(path_image_to_analyse)
 
         if plotting:
             print("============ FRAME ANALYSED =============")
@@ -147,7 +146,7 @@ class hoax_image_search(api_model):
         for i, box in enumerate(output_boxes):
             [x, y, w, h] = box
             output_img = np.array(img[y:y+h, x:x+w])
-            imshow(output_img)
+            #imshow(output_img)
             print(np.shape(output_img))
             cv2.imwrite("temp.jpg", output_img)
             imgsearch = self.calc_feature_vector(self.model, "temp.jpg")
