@@ -1,4 +1,4 @@
-#print(" * [i] Loading Keras modules...")
+print(" * [i] Loading ML modules...")
 import keras
 import pickle
 import re
@@ -54,11 +54,18 @@ class hoax_image_search(api_model):
     Required files:
         'index_subimage.csv'
     Usage:
-        search()
+        predict()
     '''
 
     def __init__(self, debug=True):
-        print("loading model")
+        self.name = "Hoax Image Search"
+        self.debug = debug
+        if self.debug:
+            if self.run_self_test():
+                print(" * [i] Model: " + self.name +
+                      " has loaded successfully")
+            else:
+                print(" * [!] An error has occured in self test!!")
         self.model = self.init_model()
         csv_filename = 'index_subimage.csv'
         self.df, self.feature_vectors = self.load_feature_vectors(csv_filename)
@@ -84,7 +91,7 @@ class hoax_image_search(api_model):
         '''
         We load 'index_subimage.csv' and also parse the feature vectors
         '''
-        df = pd.read_csv(csv_filename='index_subimage.csv')
+        df = pd.read_csv(csv_filename)
         # df.head()
 
         feature_vectors = df['feature_vector'].apply(lambda x: np.fromstring(x.replace('\n', '').replace('[', '').replace(']', '').replace('  ', ' '), sep=' '))
@@ -116,7 +123,7 @@ class hoax_image_search(api_model):
             output_boxes.append([0, 0, cp_breath, cp_height])
         return output_boxes
 
-    def analyse_image(self, model, path_image_to_analyse, plotting=False):
+    def predict(self, path_image_to_analyse, plotting=False):
         '''
         When the web server catches the URL, it downloads it and saves it.
         The image is saved in path_image_to_analyse
@@ -143,7 +150,7 @@ class hoax_image_search(api_model):
             imshow(output_img)
             print(np.shape(output_img))
             cv2.imwrite("temp.jpg", output_img)
-            imgsearch = self.calc_feature_vector(model, "temp.jpg")
+            imgsearch = self.calc_feature_vector(self.model, "temp.jpg")
 
             match = [imgsearch.dot(fv) for fv in self.feature_vectors]
             top4 = np.argpartition(match, np.arange(-4, 0, 1))[-4:][::-1]
@@ -160,9 +167,14 @@ class hoax_image_search(api_model):
                 plt.axis("off")
                 plt.show()
 
-        print("\n\n\n\n\n\n\n\n\n\n")
+        print("\n")
 
         return result  # will include the original url of the image in the future
+
+    def run_self_test(self):
+        print(" * [i] Performing self-test...")
+        print(" * [!] Self test is not implemented! Ignoring...")
+        return True
 
 
 class clickbait_detector(api_model):
