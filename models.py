@@ -1,21 +1,13 @@
 print(" * [i] Loading ML modules...")
+
 import keras
 import pickle
 import re
 import time
 import numpy as np
+import pandas as pd
 from keras.layers import *
 from keras.models import Model, load_model
-from keras.applications import vgg16
-from keras.applications.resnet50 import preprocess_input
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
-
-import cv2
-import pandas as pd
-from matplotlib.pyplot import imshow  # for debugging on jupyter
-import matplotlib.pyplot as plt  # for debugging on jupyter
-from PIL import Image  # for debugging on jupyter
 
 print(" * [i] System Keras version is", keras.__version__)
 
@@ -25,6 +17,7 @@ class api_model(object):
 
     def __init__(self, debug=True):
         self.name = "Model's Name"
+        self.debug = debug
         # override with procedure to load model
         # leave the debug option open
         if self.debug:
@@ -47,6 +40,10 @@ class api_model(object):
     def preprocess(self, input_data):
         # preprocessing function
         return NotImplementedError
+
+
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
 
 
 class article_profile_classifier(api_model):
@@ -54,6 +51,7 @@ class article_profile_classifier(api_model):
 
     def __init__(self, debug=True):
         self.name = "Article Profile Classifier"
+        self.debug = debug
         # override with procedure to load model
         # leave the debug option open
         if self.debug:
@@ -76,6 +74,12 @@ class article_profile_classifier(api_model):
     def preprocess(self, input_data):
         # preprocessing function
         return NotImplementedError
+
+
+import cv2
+from keras.applications import vgg16
+from keras.applications.resnet50 import preprocess_input
+from sklearn.preprocessing import normalize
 
 
 class hoax_image_search(api_model):
@@ -105,16 +109,8 @@ class hoax_image_search(api_model):
         Returns initialised model 
         Probably change to Xception something, but need update index_subimage.csv
         '''
-        model = vgg16.VGG16(weights='imagenet', include_top=True)
-
-        model.layers.pop()
-        model.layers.pop()
-
-        new_layer = Dense(10, activation='softmax', name='my_dense')
-
-#        inp = model.input
-#        out = new_layer(model.layers[-1].output)
-
+        model = vgg16.VGG16(weights='imagenet', include_top=False)
+        
         return model
 
     def load_feature_vectors(self, csv_filename):
@@ -132,9 +128,9 @@ class hoax_image_search(api_model):
 
     def calc_feature_vector(self, img):
         # processing images (given image path) into a feature vector
-        img = np.expand_dims(x, axis=0)
-        x = preprocess_input(x)
-        return normalize(self.model.predict(x))[0]
+        img = np.expand_dims(img, axis=0)
+        img = preprocess_input(img)
+        return normalize(self.model.predict(img))[0]
 
     def get_bounding_boxes(self, img):
         '''
@@ -185,6 +181,7 @@ class hoax_image_search(api_model):
             output_img = np.array(img[y:y+h, x:x+w])
             # imshow(output_img)
             print(np.shape(output_img))
+            output_img = cv2.resize(output_img, (224,224))
             imgsearch = self.calc_feature_vector(output_img)
 
             match = [imgsearch.dot(fv) for fv in self.feature_vectors]

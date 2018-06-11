@@ -78,13 +78,12 @@ def predict():
                 data["clickbait"] = pred_clickbait
 
             if article_text is not None:
-                NotImplementedError
-                data["article_profile"] = NotImplemented
+                print(article_text)
+                data["article_profile"] = article_text
 
             if image_list is not None:
                 results = []
                 print(" * [i] Incoming image list")
-                image_list = image_list.split(",")
                 for image_url in image_list:
                     print(" * [+] >>", image_url)
                     image = download_image(image_url)
