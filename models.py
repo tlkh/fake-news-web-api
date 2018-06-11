@@ -7,6 +7,7 @@ import numpy as np
 from keras.layers import *
 from keras.models import Model, load_model
 from keras.applications import vgg16
+from keras.applications.resnet50 import preprocess_input
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 
@@ -24,6 +25,35 @@ class api_model(object):
 
     def __init__(self, debug=True):
         self.name = "Model's Name"
+        # override with procedure to load model
+        # leave the debug option open
+        if self.debug:
+            if self.run_self_test():
+                print(" * [i] Model: " + self.name +
+                      " has loaded successfully")
+            else:
+                print(" * [!] An error has occured in self test!!")
+
+    def run_self_test(self):
+        # leave in a simple test to see if the model runs
+        # also to take a quick benchmark to test performance
+        return True
+
+    def predict(self, input_data):
+        # wrap the model.predict function here
+        # it is a good idea to just do the pre-processing here also
+        return NotImplementedError
+
+    def preprocess(self, input_data):
+        # preprocessing function
+        return NotImplementedError
+
+
+class article_profile_classifier(api_model):
+    """TODO"""
+
+    def __init__(self, debug=True):
+        self.name = "Article Profile Classifier"
         # override with procedure to load model
         # leave the debug option open
         if self.debug:
@@ -94,10 +124,17 @@ class hoax_image_search(api_model):
         df = pd.read_csv(csv_filename)
         # df.head()
 
-        feature_vectors = df['feature_vector'].apply(lambda x: np.fromstring(x.replace('\n', '').replace('[', '').replace(']', '').replace('  ', ' '), sep=' '))
+        feature_vectors = df['feature_vector'].apply(lambda x: np.fromstring(x.replace(
+            '\n', '').replace('[', '').replace(']', '').replace('  ', ' '), sep=' '))
         # ref: https://stackoverflow.com/questions/45704999/
         # model2 = Model(inp, out)
         return df, feature_vectors
+
+    def calc_feature_vector(self, img):
+        # processing images (given image path) into a feature vector
+        img = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
+        return normalize(self.model.predict(x))[0]
 
     def get_bounding_boxes(self, img):
         '''
@@ -111,13 +148,13 @@ class hoax_image_search(api_model):
         im2, contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        #     img_ann = img
+        # img_ann = img
         output_boxes = []
 
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
             if w > cp_height/2.5 and h > cp_breath/2.5:
-                #       cv2.rectangle(img_ann,(x,y),(x+w,y+h),(0,0,255),3)
+                # cv2.rectangle(img_ann,(x,y),(x+w,y+h),(0,0,255),3)
                 output_boxes.append([x, y, w, h])
         if output_boxes == []:
             output_boxes.append([0, 0, cp_breath, cp_height])
@@ -146,10 +183,9 @@ class hoax_image_search(api_model):
         for i, box in enumerate(output_boxes):
             [x, y, w, h] = box
             output_img = np.array(img[y:y+h, x:x+w])
-            #imshow(output_img)
+            # imshow(output_img)
             print(np.shape(output_img))
-            cv2.imwrite("temp.jpg", output_img)
-            imgsearch = self.calc_feature_vector(self.model, "temp.jpg")
+            imgsearch = self.calc_feature_vector(output_img)
 
             match = [imgsearch.dot(fv) for fv in self.feature_vectors]
             top4 = np.argpartition(match, np.arange(-4, 0, 1))[-4:][::-1]
