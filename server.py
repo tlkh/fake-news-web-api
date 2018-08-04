@@ -20,33 +20,9 @@ urllib3.disable_warnings()
 
 def load_ML():
     print(" * [i] Building Keras models")
-    global model_clickbait, model_hoaximage, model_articleprofile
+    global model_clickbait, model_articleprofile
     model_clickbait = clickbait_detector()
-    model_hoaximage = hoax_image_search()
     model_articleprofile = article_profile_classifier()
-
-
-def download_image(url):
-    try:
-        url = str(url)
-        print(' * [i] --- Trying to get', url)
-        http = urllib3.PoolManager()
-        response = http.request('GET', url, timeout=3)
-        image_data = response.data
-    except Exception as e:
-        print(" * [!] --- Warning: Could not download image", url)
-        print(" * [!] --- ", e)
-        return False
-
-    try:
-        pil_image = Image.open(BytesIO(image_data)).convert('RGB')
-        output = np.array(pil_image)[:, :, ::-1].copy()
-    except Exception as e:
-        print(" * [!] --- Warning: Failed to parse image", url)
-        print(" * [!] --- ", e)
-        return False
-
-    return output
 
 
 @app.route("/predict", methods=["POST"])
@@ -83,13 +59,7 @@ def predict():
 
             if image_list is not None:
                 results = []
-                print(" * [i] Incoming image list")
-                for image_url in image_list:
-                    print(" * [+] >>", image_url)
-                    image = download_image(image_url)
-                    pred = model_hoaximage.predict(image)
-                    print(" * [+] -->", pred)
-                    results.append(pred)
+                # TODO
 
                 data["hoax_image_search"] = results
 
