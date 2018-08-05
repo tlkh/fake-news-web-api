@@ -9,27 +9,30 @@ from newspaper import Article
 
 app = flask.Flask(__name__)
 
-from models import *
+from model_nlp import *
 
 model_clickbait = None
-model_hoaximage = None
-model_articleprofile = None
+model_profile = None
 
 urllib3.disable_warnings()
 
 
 def load_ML():
     print(" * [i] Building Keras models")
-    global model_clickbait, model_articleprofile
+    global model_clickbait, model_profile
+
+    # clickbait title detector
     model_clickbait = clickbait_detector()
-    model_articleprofile = article_profile_classifier()
+
+    # article profile classifier
+    model_profile = article_profile_classifier()
 
 
 @app.route("/predict", methods=["POST"])
 def predict():
         # initialize the data dictionary that will be returned from the
         # view
-    global model_clickbait, model_hoaximage, model_articleprofile
+    global model_clickbait, model_profile
 
     data = {"success": False}
 
