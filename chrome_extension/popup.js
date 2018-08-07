@@ -20,18 +20,34 @@ document.addEventListener('DOMContentLoaded', function () {
         var tab = tabs[0];
         var page_domain = extract_hostname(tab.url.toString());
 
-        var domain_display = document.getElementById("domain-display")
-        var debug_display = document.getElementById("debug-display")
+        var title_display = document.getElementById("title-display");
+        var domain_display = document.getElementById("domain-display");
+        var clickbait_display = document.getElementById("clickbait-display");
+        var profile_display = document.getElementById("profile-display");
+        var debug_display = document.getElementById("debug-display");
+
+        var clickbait_prompt = document.getElementById("clickbait-prompt")
+        var profile_prompt = document.getElementById("profile-prompt")
+
         domain_display.innerHTML = page_domain;
 
         var xhr = new XMLHttpRequest();
         xhr.open('POST', 'http://35.185.181.66:5000/predict?article_url=' + tab.url.toString(), true);
         xhr.onload = function () {
-            // do something to response
             var json = JSON.parse(this.responseText);
-            console.log(json);
             debug_display.innerHTML = this.responseText;
 
+            title_display.innerHTML = json.article_title;
+
+            clickbait_display.innerHTML = json.clickbait;
+            if (json.clickbait == "clickbait") {
+                clickbait_prompt.innerHTML = "Headline appears to be written to attract more views"
+            } else {
+                clickbait_prompt.innerHTML = "Headline does not appear to sensationalise the news"
+            }
+            
+            profile_display.innerHTML = json.article_profile;
+            profile_prompt.innerHTML = "Article writing style matches: " + json.article_profile.toString();
         };
         xhr.send();
     });
