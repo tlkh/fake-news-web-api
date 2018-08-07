@@ -1,4 +1,5 @@
 print(" * [i] Loading Python modules...")
+import time
 import numpy as np
 import flask
 import urllib3
@@ -38,11 +39,12 @@ def predict():
 
     # get the respective args from the post request
     if flask.request.method == "POST":
+        start_time = time.time()
         try:
             # retrieve parameters from arguments
             article_url = flask.request.args.get("article_url")
 
-            article = Article(article_url)
+            article = Article(article_url, fetch_images=False)
             article.download()
             article.parse()
 
@@ -55,10 +57,11 @@ def predict():
                 print(" * [i] Incoming article title:", article_title)
                 pred_clickbait = model_clickbait.predict(article_title)
                 data["clickbait"] = pred_clickbait
+                data["article_title"] = article_title
 
             if article_text is not None:
-                print(article_text)
-                data["article_profile"] = article_text
+                pred_profile = model_profile.predict(article_text)
+                data["article_profile"] = pred_profile
 
             if image_list is not None:
                 results = []
@@ -72,6 +75,8 @@ def predict():
             data["prediction_error"] = str(e)
             data["success"] = False
             print(" * [!]", e)
+
+        print("Request took", int(time.time()-start_time), "seconds")
 
     # return the data dictionary as a JSON response
     return flask.jsonify(data)

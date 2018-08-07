@@ -3,14 +3,22 @@ from model_base import *
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 
+from nltk.corpus import stopwords
+
+
 class article_profile_classifier(api_model):
     """TODO"""
 
     def __init__(self, debug=True):
         self.name = "Article Profile Classifier"
         self.debug = debug
-        # override with procedure to load model
-        # leave the debug option open
+        self.model = load_model("profile_weights.h5")
+        self.model._make_predict_function()
+        self.classes = classes = ["fake", "satire", "bias",
+                                  "conspiracy", "state", "junksci", "hate", "clickbait",
+                                  "unreliable", "political", "reliable"]
+        with open('profile_tokenizer.pickle', 'rb') as handle:
+            self.tokenizer = pickle.load(handle)
         if self.debug:
             if self.run_self_test():
                 print(" * [i] Model: " + self.name +
@@ -24,13 +32,27 @@ class article_profile_classifier(api_model):
         return True
 
     def predict(self, input_data):
-        # wrap the model.predict function here
-        # it is a good idea to just do the pre-processing here also
-        return NotImplementedError
+        input_sequence = self.preprocess(input_data)
+        preds = self.model.predict(input_sequence)
+        pred = preds.argmax(axis=-1)
+        output = self.classes[pred[0]]
+        return output
+
+    def clean_text(self, text):
+        output = ""
+        text = str(text).replace("\n", "")
+        text = re.sub(r'[^\w\s]', '', text).lower().split(" ")
+        for word in text:
+            if word not in stopwords.words("english"):
+                output = output + " " + word
+        return str(output.strip())[1:-3].replace("  ", " ")
 
     def preprocess(self, input_data):
-        # preprocessing function
-        return NotImplementedError
+        input_string = self.clean_text(input_data)
+        input_token = self.tokenizer.texts_to_sequences([input_string])
+        processed_input = pad_sequences(
+            input_token, padding='post', maxlen=(400))
+        return processed_input
 
 
 class clickbait_detector(api_model):
@@ -47,6 +69,7 @@ class clickbait_detector(api_model):
         print(" * [i] Loading model...")
         self.name = "Clickbait Detector"
         self.model = load_model("clickbait_weights.h5")
+        self.model._make_predict_function()
         with open('clickbait_tokenizer.pickle', 'rb') as handle:
             self.tokenizer = pickle.load(handle)
         self.classes = ["not_clickbait", "clickbait"]
