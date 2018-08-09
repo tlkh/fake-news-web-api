@@ -5,14 +5,13 @@ import flask
 import urllib3
 from PIL import Image
 from io import BytesIO
-
 from newspaper import Article
-
 from threading import Thread
 
-app = flask.Flask(__name__)
-
+print(" * [i] Loading NLP models...")
 from model_nlp import *
+
+app = flask.Flask(__name__)
 
 model_clickbait = None
 model_toxic = None
@@ -34,12 +33,30 @@ def load_ML():
     # article profile/type classifier
     model_profile = article_profile_classifier()
 
+def pred_clickbait(input_):
+    global model_clickbait, data
+    data["clickbait"] = model_clickbait.predict(input_)
+
+def pred_toxic(input_):
+    global model_toxic, data
+    data["article_toxic"] = model_toxic.predict(input_)
+
+def pred_profile(input_):
+    global model_profile, data
+    data["article_profile"] = model_profile.predict(input_)
+
+def pred_subj(input_):
+    global model_subj, data
+    data["article_subjectivity"] = model_subj.predict(input_)
+
+data = {"success": False}
 
 @app.route("/predict", methods=["POST"])
 def predict():
         # initialize the data dictionary that will be returned from the
         # view
     global model_clickbait, model_profile, model_toxic, model_subj
+    global data
 
     data = {"success": False}
 
@@ -58,18 +75,6 @@ def predict():
         image_list = article.images
 
         threads = []
-
-        def pred_clickbait(input_):
-            data["clickbait"] = model_clickbait.predict(input_)
-
-        def pred_toxic(input_):
-            data["article_toxic"] = model_toxic.predict(input_)
-
-        def pred_profile(input_):
-            data["article_profile"] = model_profile.predict(input_)
-
-        def pred_subj(input_):
-            data["article_subjectivity"] = model_subj.predict(input_)
 
         if article_title is not None:
             article_title = article_title.replace("%20", " ")

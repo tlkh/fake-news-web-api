@@ -1,10 +1,18 @@
 from model_base import *
 
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
-
+import functools
 from nltk.corpus import stopwords
 
+import tensorflow as tf
+import tensorflow_hub as hub
+
+from keras import regularizers, initializers, optimizers, callbacks
+from keras.utils.np_utils import to_categorical
+from keras.layers import *
+from keras.models import Model
+from keras import backend as K
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
 
 class article_profile_classifier(api_model):
     """
@@ -34,8 +42,11 @@ class article_profile_classifier(api_model):
     def run_self_test(self):
         # leave in a simple test to see if the model runs
         # also to take a quick benchmark to test performance
+        input_sequence = self.preprocess(["Hello there this is to cache the stops words I think not really sure why else got error when threaded lmao"])
+        self.model.predict(input_sequence)
         return True
 
+    @functools.lru_cache(maxsize=128, typed=False)
     def predict(self, input_data):
         input_sequence = self.preprocess(input_data)
         preds = self.model.predict(input_sequence)
@@ -58,16 +69,6 @@ class article_profile_classifier(api_model):
         processed_input = pad_sequences(
             input_token, padding='post', maxlen=(400))
         return processed_input
-
-
-import tensorflow as tf
-import tensorflow_hub as hub
-
-from keras import regularizers, initializers, optimizers, callbacks
-from keras.utils.np_utils import to_categorical
-from keras.layers import *
-from keras.models import Model
-from keras import backend as K
 
 
 class subjectivity_classifier(api_model):
@@ -126,9 +127,10 @@ class subjectivity_classifier(api_model):
         preds_list = self.model.predict(test)
         return True
 
+    @functools.lru_cache(maxsize=128, typed=False)
     def predict(self, input_data):
         batch = self.preprocess(input_data)
-        preds_list = self.model.predict(batch)
+        preds_list = self.model.predict_on_batch(batch)
         output = np.asarray([0, 0])
         for pred in preds_list:
             output = output + pred
@@ -186,9 +188,10 @@ class toxic_classifier(api_model):
         # also to take a quick benchmark to test performance
         return True
 
+    @functools.lru_cache(maxsize=128, typed=False)
     def predict(self, input_data):
         input_sequence = self.preprocess(input_data)
-        preds_list = self.model.predict(input_sequence)
+        preds_list = self.model.predict_on_batch(input_sequence)
         output = []
         for pred in preds_list:
             for i, class_pred in enumerate(pred):
@@ -276,6 +279,7 @@ class clickbait_detector(api_model):
             print(e)
             return False
 
+    @functools.lru_cache(maxsize=128, typed=False)
     def predict(self, input_string):
         processed_input = self.preprocess(input_string)
         preds = self.model.predict(processed_input)
