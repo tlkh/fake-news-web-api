@@ -1,18 +1,15 @@
-from model_base import *
-
 import functools
+import re
 from nltk.corpus import stopwords
+
+from model_base import *
 
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from keras import regularizers, initializers, optimizers, callbacks
-from keras.utils.np_utils import to_categorical
-from keras.layers import *
-from keras.models import Model
-from keras import backend as K
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
+
 
 class article_profile_classifier(api_model):
     """
@@ -42,7 +39,8 @@ class article_profile_classifier(api_model):
     def run_self_test(self):
         # leave in a simple test to see if the model runs
         # also to take a quick benchmark to test performance
-        input_sequence = self.preprocess(["Hello there this is to cache the stops words I think not really sure why else got error when threaded lmao"])
+        input_sequence = self.preprocess(
+            ["Hello there this is to cache the stops words I think not really sure why else got error when threaded lmao"])
         self.model.predict(input_sequence)
         return True
 
@@ -121,11 +119,14 @@ class subjectivity_classifier(api_model):
     def run_self_test(self):
         # leave in a simple test to see if the model runs
         # also to take a quick benchmark to test performance
-        test = ["Hello this is a random statement",
-                "Hello this is another statement"]
-        test = np.array(test, dtype=object)[:, np.newaxis]
-        preds_list = self.model.predict(test)
-        return True
+        try:
+            test = ["Hello this is a random statement",
+                    "Hello this is another statement"]
+            test = np.array(test, dtype=object)[:, np.newaxis]
+            self.model.predict(test)
+            return True
+        except Exception as e:
+            return str(e)
 
     @functools.lru_cache(maxsize=128, typed=False)
     def predict(self, input_data):

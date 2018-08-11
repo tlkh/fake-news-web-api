@@ -2,13 +2,15 @@ print(" * [i] Loading ML modules...")
 
 import keras
 import pickle
-import re
+
 import time
 import numpy as np
 import pandas as pd
 
+import keras
 from keras.layers import *
 from keras.models import Model, load_model
+from keras import backend as K
 
 print(" * [i] System Keras version is", keras.__version__)
 

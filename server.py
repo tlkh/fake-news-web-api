@@ -3,8 +3,6 @@ import time
 import numpy as np
 import flask
 import urllib3
-from PIL import Image
-from io import BytesIO
 from newspaper import Article
 from threading import Thread
 
@@ -33,23 +31,29 @@ def load_ML():
     # article profile/type classifier
     model_profile = article_profile_classifier()
 
+
 def pred_clickbait(input_):
     global model_clickbait, data
     data["clickbait"] = model_clickbait.predict(input_)
+
 
 def pred_toxic(input_):
     global model_toxic, data
     data["article_toxic"] = model_toxic.predict(input_)
 
+
 def pred_profile(input_):
     global model_profile, data
     data["article_profile"] = model_profile.predict(input_)
+
 
 def pred_subj(input_):
     global model_subj, data
     data["article_subjectivity"] = model_subj.predict(input_)
 
+
 data = {"success": False}
+
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -97,7 +101,7 @@ def predict():
             t = Thread(target=pred_subj, args=([article_text]))
             threads.append(t)
             t.start()
-            
+
         if image_list is not None:
             results = []
             # TODO
