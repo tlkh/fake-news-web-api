@@ -137,8 +137,8 @@ class subjectivity_classifier(api_model):
             output = output + pred
         return output.tolist()
 
-    def preprocess(self, text):
-        text = re.sub(r'[^\w\s]', ' ', text.lower()).replace(
+    def preprocess(self, input_data):
+        text = re.sub(r'[^\w\s]', ' ', input_data.lower()).replace(
             "\n", " ").replace("  ", " ")
         text = "".join([c for c in text if (c.isalpha() or c == " ")])
         text = text.split(" ")
@@ -281,8 +281,8 @@ class clickbait_detector(api_model):
             return False
 
     @functools.lru_cache(maxsize=128, typed=False)
-    def predict(self, input_string):
-        processed_input = self.preprocess(input_string)
+    def predict(self, input_data):
+        processed_input = self.preprocess(input_data)
         preds = self.model.predict(processed_input)
         pred = preds.argmax(axis=-1)
 
@@ -293,8 +293,8 @@ class clickbait_detector(api_model):
 
         return output
 
-    def preprocess(self, input_string):
-        input_string = str(input_string).lower()
+    def preprocess(self, input_data):
+        input_string = str(input_data).lower()
         input_string = re.sub(r'[^\w\s]', '', input_string)
 
         input_token = self.tokenizer.texts_to_sequences([input_string])

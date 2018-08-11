@@ -1,9 +1,7 @@
 print(" * [i] Loading ML modules...")
 
-import keras
-import pickle
-
 import time
+import pickle
 import numpy as np
 import pandas as pd
 
