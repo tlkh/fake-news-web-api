@@ -1,4 +1,8 @@
-tensorflow
-keras
-opencv-contrib-python
+flask
+numpy
+pandas
 nltk
+newspaper3k
+opencv-contrib-python
+keras
+tensorflow_hub
