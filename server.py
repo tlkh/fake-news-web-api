@@ -6,6 +6,9 @@ import urllib3
 from newspaper import Article
 from threading import Thread
 
+from claimreview import ClaimReview
+cr = ClaimReview()
+
 print(" * [i] Loading NLP models...")
 from model_nlp import *
 
@@ -60,7 +63,7 @@ def predict():
         # initialize the data dictionary that will be returned from the
         # view
     global model_clickbait, model_profile, model_toxic, model_subj
-    global data
+    global data, cr
 
     data = {"success": False}
 
@@ -80,15 +83,6 @@ def predict():
 
         threads = []
 
-        if article_title is not None:
-            article_title = article_title.replace("%20", " ")
-            print(" * [i] Incoming article title:", article_title)
-            data["article_title"] = article_title
-
-            t = Thread(target=pred_clickbait, args=([article_title]))
-            threads.append(t)
-            t.start()
-
         if article_text is not None:
             t = Thread(target=pred_toxic, args=([article_text]))
             threads.append(t)
@@ -101,6 +95,17 @@ def predict():
             t = Thread(target=pred_subj, args=([article_text]))
             threads.append(t)
             t.start()
+
+        if article_title is not None:
+            article_title = article_title.replace("%20", " ")
+            print(" * [i] Incoming article title:", article_title)
+            data["article_title"] = article_title
+
+            t = Thread(target=pred_clickbait, args=([article_title]))
+            threads.append(t)
+            t.start()
+
+            data["claimReview"] = cr.search_fc(article_title)
 
         if image_list is not None:
             results = []
