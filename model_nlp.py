@@ -5,7 +5,6 @@ from nltk.corpus import stopwords
 from model_base import *
 
 import tensorflow as tf
-import tensorflow_hub as hub
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -44,7 +43,7 @@ class article_profile_classifier(api_model):
         self.model.predict(input_sequence)
         return True
 
-    @functools.lru_cache(maxsize=128, typed=False)
+    @functools.lru_cache(maxsize=512, typed=False)
     def predict(self, input_data):
         input_sequence = self.preprocess(input_data)
         preds = self.model.predict(input_sequence)
@@ -65,7 +64,7 @@ class article_profile_classifier(api_model):
         input_string = self.clean_text(input_data)
         input_token = self.tokenizer.texts_to_sequences([input_string])
         processed_input = pad_sequences(
-            input_token, padding='post', maxlen=(400))
+            input_token, padding='post', maxlen=(200))
         return processed_input
 
 
@@ -73,16 +72,18 @@ class subjectivity_classifier(api_model):
     """
     Model to detect subjective language in an article
     Required files:
+      Tokenizer: "subjective_tokenizer.pickle"
       Weights: "subjective_weights.h5"
     """
 
     def __init__(self, debug=True):
         self.name = "Subjectivity Classifier"
         self.debug = debug
-        self.model = self.build_model()
-        self.model.load_weights("subjective_weights.h5")
+        self.model = load_model("subjective_weights.h5")
+        with open("subjective_tokenizer.pickle", "rb") as handle:
+            self.tokenizer = pickle.load(handle)
         self.model._make_predict_function()
-        self.MAX_SEQUENCE_LENGTH = 35
+        self.MAX_SEQUENCE_LENGTH = 40
         self.classes = ["subjective", "objective"]
         if self.debug:
             if self.run_self_test():
@@ -90,31 +91,6 @@ class subjectivity_classifier(api_model):
                       " has loaded successfully")
             else:
                 print(" * [!] An error has occured in self test!!")
-
-    def build_model(self):
-        """Text Classification with pre-trainedELMo embeddings from TF Hub"""
-        sess = tf.Session()
-        K.set_session(sess)
-
-        elmo_model = hub.Module(
-            "https://tfhub.dev/google/elmo/2", trainable=True)
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.tables_initializer())
-
-        sequence_input = Input(shape=(1,), dtype=tf.string)
-        embedded_sequences = Lambda(lambda x: elmo_model(tf.squeeze(tf.cast(
-            x, tf.string)), signature="default", as_dict=True)["default"], output_shape=(1024,))(sequence_input)
-        embedded_sequences = Reshape((1024, 1,))(embedded_sequences)
-        l_drop = Dropout(0.4)(embedded_sequences)
-        l_flat = Flatten()(l_drop)
-        l_dense = Dense(32, activation='relu')(l_flat)
-        preds = Dense(2, activation='softmax')(l_dense)
-        model = Model(sequence_input, preds)
-
-        model.compile(loss='binary_crossentropy',
-                      optimizer="adam", metrics=['acc'])
-
-        return model
 
     def run_self_test(self):
         # leave in a simple test to see if the model runs
@@ -128,7 +104,7 @@ class subjectivity_classifier(api_model):
         except Exception as e:
             return str(e)
 
-    @functools.lru_cache(maxsize=128, typed=False)
+    @functools.lru_cache(maxsize=512, typed=False)
     def predict(self, input_data):
         batch = self.preprocess(input_data)
         preds_list = self.model.predict_on_batch(batch)
@@ -139,101 +115,26 @@ class subjectivity_classifier(api_model):
 
     def preprocess(self, input_data):
         text = re.sub(r'[^\w\s]', ' ', input_data.lower()).replace(
-            "\n", " ").replace("  ", " ")
-        text = "".join([c for c in text if (c.isalpha() or c == " ")])
-        text = text.split(" ")
+            "\n", " ").replace("  ", " ").strip()
+        [text] = self.tokenizer.texts_to_sequences([text])
         batch = []
         count = 0
-        seq = ""
+        seq = []
         for i, word in enumerate(text):
             if count > self.MAX_SEQUENCE_LENGTH-1:
                 count = 0
                 batch.append(seq)
-                seq = ""
-            elif (word.isalpha() and word != " "):
-                seq = seq + word + " "
+                seq = []
+            elif int(word) > 0:
+                seq.append(word)
                 count += 1
             elif i == len(text)-1:
                 if len(seq) > 5:
                     batch.append(seq)
-        return np.array(batch, dtype=object)[:, np.newaxis]
 
-
-class toxic_classifier(api_model):
-    """
-    Model to detect hateful language in an article
-    Required files:
-      Weights: "toxic_weights.h5"
-      Tokenizer: "toxic_tokenizer.pickle"
-    """
-
-    def __init__(self, debug=True):
-        self.name = "Toxicity Classifier"
-        self.debug = debug
-        self.model = load_model("toxic_weights.h5")
-        self.model._make_predict_function()
-        self.MAX_SEQUENCE_LENGTH = 128
-        self.classes = ["toxic", "severe_toxic",
-                        "obscene", "threat", "insult", "identity_hate", "none"]
-        with open('toxic_tokenizer.pickle', 'rb') as handle:
-            self.tokenizer = pickle.load(handle)
-        if self.debug:
-            if self.run_self_test():
-                print(" * [i] Model: " + self.name +
-                      " has loaded successfully")
-            else:
-                print(" * [!] An error has occured in self test!!")
-
-    def run_self_test(self):
-        # leave in a simple test to see if the model runs
-        # also to take a quick benchmark to test performance
-        return True
-
-    @functools.lru_cache(maxsize=128, typed=False)
-    def predict(self, input_data):
-        input_sequence = self.preprocess(input_data)
-        preds_list = self.model.predict_on_batch(input_sequence)
-        output = []
-        for pred in preds_list:
-            for i, class_pred in enumerate(pred):
-                if class_pred > 0.6:
-                    if self.classes[i] not in output:
-                        output.append(self.classes[i])
-
-        if len(output) < 1:
-            return ["none"]
-        else:
-            return output
-
-    def clean_text(self, text):
-        text = re.sub(r'[^\w\s]', ' ', text.lower()).replace(
-            "\n", " ").replace("  ", " ")
-        text = "".join([c for c in text if (c.isalpha() or c == " ")])
-        text = text.split(" ")
-        batch = []
-        count = 0
-        seq = ""
-        for i, word in enumerate(text):
-            if count > 110:
-                count = 0
-                batch.append(seq)
-                seq = ""
-            elif (word.isalpha() and word != " " and word not in stopwords.words("english")):
-                seq = seq + word + " "
-                count += 1
-            elif i == len(text)-1:
-                if len(seq) > 5:
-                    batch.append(seq)
+        batch = pad_sequences(batch, padding='post',
+                              maxlen=(self.MAX_SEQUENCE_LENGTH))
         return batch
-
-    def preprocess(self, input_data):
-        input_string = self.clean_text(input_data)
-        input_token = self.tokenizer.texts_to_sequences(input_string)
-        processed_input = pad_sequences(
-            input_token, padding='pre', maxlen=(self.MAX_SEQUENCE_LENGTH-3))
-        processed_input = pad_sequences(
-            processed_input, padding='post', maxlen=(self.MAX_SEQUENCE_LENGTH))
-        return processed_input
 
 
 class clickbait_detector(api_model):
@@ -280,7 +181,7 @@ class clickbait_detector(api_model):
             print(e)
             return False
 
-    @functools.lru_cache(maxsize=128, typed=False)
+    @functools.lru_cache(maxsize=512, typed=False)
     def predict(self, input_data):
         processed_input = self.preprocess(input_data)
         preds = self.model.predict(processed_input)

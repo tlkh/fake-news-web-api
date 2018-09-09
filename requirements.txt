@@ -5,4 +5,8 @@ nltk
 newspaper3k
 opencv-contrib-python
 keras
-tensorflow_hub
+gunicorn
+tqdm
+fuzzywuzzy
+python-Levenshtein
+

@@ -19,7 +19,7 @@ class ClaimReview():
         nltk.download('averaged_perceptron_tagger')
         nltk.download('wordnet')
         nltk.download('stopwords')
-        print("")
+        nltk.download('punkt')
         self.lemmatizer = WordNetLemmatizer()
 
         fc_path = "fact_checks_20180502.txt"
@@ -33,6 +33,7 @@ class ClaimReview():
         self.url_list = []
         self.date_list = []
         self.reviewby_list = []
+        self.verdict_list = []
 
         for fc in tqdm(fc_raw):
             fc = fc.strip("\n")
@@ -47,10 +48,12 @@ class ClaimReview():
                 date_published = "None"
             author = fc["author"]["name"]
             self.title_list.append(title)
-            self.org_title_list.append(self.strip_html(fc["claimReviewed"]).replace("\\", "").strip())
+            self.org_title_list.append(self.strip_html(
+                fc["claimReviewed"]).replace("\\", "").strip())
             self.url_list.append(url)
             self.reviewby_list.append(author)
             self.date_list.append(date_published)
+            self.verdict_list.append(fc["reviewRating"]["alternateName"])
 
         print(" * [i] Loaded Claims:", len(self.title_list))
 
@@ -98,21 +101,23 @@ class ClaimReview():
         norm_text = self.lemmatize_sentence(text)
         return norm_text
 
-    @functools.lru_cache(maxsize=128, typed=False)
+    @functools.lru_cache(maxsize=512, typed=False)
     def search_fc(self, article_title):
         match_title = []
         match_url = []
         match_author = []
         match_date = []
+        match_verdict = []
 
         article_title = self.norm_text(article_title)
 
-        for index, fc_title in tqdm(enumerate(self.title_list), total=len(self.title_list)):
+        for index, fc_title in enumerate(self.title_list):
             match = fuzz.token_sort_ratio(article_title, fc_title)
-            if match > 55:
+            if match > 56:
                 match_title.append(self.org_title_list[index])
                 match_url.append(self.url_list[index])
                 match_date.append(self.date_list[index])
                 match_author.append(self.reviewby_list[index])
+                match_verdict.append(self.verdict_list[index])
 
-        return {"titles": match_title, "urls": match_url, "dates": match_date, "authors": match_author}
+        return {"titles": match_title, "urls": match_url, "dates": match_date, "authors": match_author, "verdicts": match_verdict}
